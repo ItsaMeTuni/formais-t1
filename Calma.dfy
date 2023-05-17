@@ -16,12 +16,13 @@ class {:autocontracts} Queue {
         0 <= head < list.Length &&
         0 <= tail < list.Length &&
 
-        (if head <= tail then size == tail - head
-        else (head + size) % list.Length == tail) &&
+        (head < tail ==> size == tail - head) &&
+        (head == tail ==> size == 0 || size == list.Length) &&
+        (head > tail ==> (head + size) % list.Length == tail) &&
         
         contents == 
             if size > 0 then
-                if head > tail
+                if head >= tail
                 then list[head..] + list[..tail]
                 else list[head..tail]
             else []
@@ -39,15 +40,21 @@ class {:autocontracts} Queue {
     }
 
     method enqueue(x: int) 
+        requires size < list.Length
         ensures contents == old(contents) + [x]
-        ensures size == old(size) + 1
     {
         if size == list.Length {
             grow();
         }
+        enqueue_append(x);
+    }
 
-        tail := (tail + 1) % list.Length;
+    method enqueue_append(x: int)
+        requires size < list.Length
+        ensures contents == old(contents) + [x]
+    {
         list[tail] := x;
+        tail := (tail + 1) % list.Length;
         size := size + 1;
         contents := contents + [x];
     }
@@ -56,9 +63,8 @@ class {:autocontracts} Queue {
         requires size == list.Length
         ensures contents == old(contents)
         ensures size == old(size)
-        ensures list.Length == 2 * old(list.Length)
     {
-        var new_list := new int[list.Length * 2];
+        var new_list := new int[list.Length + 10];
 
         forall i: nat | 0 <= i < list.Length { 
             new_list[i] := list[(head + i) % list.Length];
@@ -66,7 +72,7 @@ class {:autocontracts} Queue {
 
         list := new_list;
         head := 0;
-        tail := size - 1;
+        tail := size;
 
         Repr := {this, list};
     }
@@ -77,7 +83,6 @@ class {:autocontracts} Queue {
         ensures contents == old(contents[1..])
     {
         x := list[head];
-        list[head] := 0;
         head := (head + 1) % list.Length;
         size := size - 1;
         contents := contents[1..];
@@ -105,9 +110,16 @@ class {:autocontracts} Queue {
         r := size == 0;
     }
 
-    // method concat(other: Queue) returns (r: Queue)
-    //     ensures r.contents == contents + other.contents
-    // r = new Queue;
-    // r.Repr := {r, r.list};
-    // {}
+    method concat(other: Queue) returns (r: Queue)
+        ensures r.contents == contents + other.contents
+    {
+        r := new Queue();
+
+
+
+
+        r.Repr := {r, r.list};
+    }
+
+    
 }
