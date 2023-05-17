@@ -1,3 +1,10 @@
+// Trabalho 1 de Metodos Formais
+// Lucas Antunes
+// Henrique Xavier
+// Louise Dornelles
+// Gabriel Panho
+// Arthur Maia
+
 class {:autocontracts} Queue {
 
     ghost var contents: seq<int>;
@@ -110,19 +117,12 @@ class {:autocontracts} Queue {
         r := size == 0;
     }
 
-    method peek(idx: nat) returns (x: int)
-        requires size > 0
-        requires idx < size
-        ensures x == contents[idx]
-    {
-        x := list[(head + idx) % list.Length];
-    }
-
     method concat(other: Queue) returns (r: Queue)
         requires size > 0
         requires other.size > 0
+        requires other != this
+        requires other.Valid()
         ensures r.contents == contents + other.contents
-        ensures fresh(r)
     {
         r := new Queue();
 
@@ -131,27 +131,27 @@ class {:autocontracts} Queue {
     }
 
     method append(other: Queue)
-        requires other.size > 0
+        requires other != this
+        requires other.Valid()
         ensures contents == old(contents) + other.contents
     {
-        ghost var initial_size := |contents|;
-
         var i := 0;
         while i < other.size
-            invariant other.list.Length > 0
-            invariant |contents| >= initial_size + i
-            invariant |other.contents| >= i
-            invariant forall k :: 0 <= k < i ==> contents[initial_size + k] == other.contents[k]
+            invariant other.Valid()
             invariant Valid()
-            invariant |contents| == initial_size + i
         {
-            var x := other.list[(other.head + i) % other.list.Length];
+            var x := other.peek(i);
             enqueue(x);
-            assert contents[|contents| - 1] == x;
             i := i + 1;
         }
+    }
 
-        assert |contents| == initial_size + |other.contents|;
+    method peek(idx: nat) returns (x: int)
+    requires size > 0
+    requires idx < size
+    ensures x == contents[idx]
+    {
+        x := list[(head + idx) % list.Length];
     }
 }
 
