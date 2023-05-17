@@ -122,9 +122,36 @@ class {:autocontracts} Queue {
         requires size > 0
         requires other.size > 0
         ensures r.contents == contents + other.contents
+        ensures fresh(r)
     {
         r := new Queue();
-        r.contents := contents + other.contents;
+
+        r.append(this);
+        r.append(other);
+    }
+
+    method append(other: Queue)
+        requires other.size > 0
+        ensures contents == old(contents) + other.contents
+    {
+        ghost var initial_size := |contents|;
+
+        var i := 0;
+        while i < other.size
+            invariant other.list.Length > 0
+            invariant |contents| >= initial_size + i
+            invariant |other.contents| >= i
+            invariant forall k :: 0 <= k < i ==> contents[initial_size + k] == other.contents[k]
+            invariant Valid()
+            invariant |contents| == initial_size + i
+        {
+            var x := other.list[(other.head + i) % other.list.Length];
+            enqueue(x);
+            assert contents[|contents| - 1] == x;
+            i := i + 1;
+        }
+
+        assert |contents| == initial_size + |other.contents|;
     }
 }
 
