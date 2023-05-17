@@ -9,14 +9,15 @@ class {:autocontracts} Queue {
 
     ghost predicate Valid()
     {
-        list.Length > 0 &&
+        list.Length >= 10 &&
         size == |contents| &&
-        size < list.Length &&
-        (size == 0 <==> head == tail) &&
-        (size > 0 ==> (head + size - 1) % list.Length == tail) &&
-
+        size <= list.Length &&
+ 
         0 <= head < list.Length &&
         0 <= tail < list.Length &&
+
+        (if head <= tail then size == tail - head
+        else (head + size) % list.Length == tail) &&
         
         contents == 
             if size > 0 then
@@ -37,42 +38,36 @@ class {:autocontracts} Queue {
         size := 0;
     }
 
-    // method enqueue(x: int) 
-    //     requires size < list.Length
-    //     ensures contents == old(contents) + [x]
-    // {
-    //     tail := (tail + 1) % list.Length;
-    //     list[tail] := x;
-    //     size := size + 1;
+    method enqueue(x: int) 
+        ensures contents == old(contents) + [x]
+        ensures size == old(size) + 1
+    {
+        if size == list.Length {
+            grow();
+        }
 
-    //     contents := 
-    //         if size > 0 then
-    //             if head > tail
-    //             then list[head..] + list[..tail]
-    //             else list[head..tail]
-    //         else [];
-
-    //     assert forall i :: 0 <= i < |contents| - 1 ==> contents[i] == old(contents[i]);
-    //     assert contents[|contents| - 1] == x;
+        tail := (tail + 1) % list.Length;
+        list[tail] := x;
+        size := size + 1;
+        contents := contents + [x];
     }
 
     method grow()
-        requires size > 0
+        requires size == list.Length
         ensures contents == old(contents)
+        ensures size == old(size)
         ensures list.Length == 2 * old(list.Length)
     {
         var new_list := new int[list.Length * 2];
 
-            forall i: nat | 0 <= i < list.Length { 
-                new_list[i] := list[(head + i) % list.Length];
-            }
-
+        forall i: nat | 0 <= i < list.Length { 
+            new_list[i] := list[(head + i) % list.Length];
+        }
 
         list := new_list;
         head := 0;
         tail := size - 1;
 
-        contents := list[..size];
         Repr := {this, list};
     }
 
@@ -80,21 +75,21 @@ class {:autocontracts} Queue {
         requires |contents| > 0
         ensures x == old(contents[0])
         ensures contents == old(contents[1..])
-        ensures size == old(size) - 1
     {
         x := list[head];
         list[head] := 0;
         head := (head + 1) % list.Length;
         size := size - 1;
+        contents := contents[1..];
     }
 
     method contains(x: int) returns (r: bool)
         ensures r <==> x in contents
     {
         r := if size > 0 then
-                if head > tail
-                then x in list[head..] + list[..tail + 1]
-                else x in list[head..tail + 1]
+                if head >= tail
+                then x in list[head..] + list[..tail]
+                else x in list[head..tail]
             else false;
     }
 
