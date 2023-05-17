@@ -40,7 +40,6 @@ class {:autocontracts} Queue {
     }
 
     method enqueue(x: int) 
-        requires size < list.Length
         ensures contents == old(contents) + [x]
     {
         if size == list.Length {
@@ -63,6 +62,7 @@ class {:autocontracts} Queue {
         requires size == list.Length
         ensures contents == old(contents)
         ensures size == old(size)
+        ensures size < list.Length
     {
         var new_list := new int[list.Length + 10];
 
@@ -110,16 +110,67 @@ class {:autocontracts} Queue {
         r := size == 0;
     }
 
+    method peek(idx: nat) returns (x: int)
+        requires size > 0
+        requires idx < size
+        ensures x == contents[idx]
+    {
+        x := list[(head + idx) % list.Length];
+    }
+
     method concat(other: Queue) returns (r: Queue)
+        requires size > 0
+        requires other.size > 0
         ensures r.contents == contents + other.contents
     {
         r := new Queue();
-
-
-
-
-        r.Repr := {r, r.list};
+        r.contents := contents + other.contents;
     }
-
-    
 }
+
+method Main()
+{
+    var q := new Queue();
+    q.enqueue(1);
+    q.enqueue(2);
+    q.enqueue(3);
+    q.enqueue(4);
+    q.enqueue(5);
+    q.enqueue(6);
+    q.enqueue(7);
+    q.enqueue(8);
+    q.enqueue(9);
+    q.enqueue(10);
+    q.enqueue(11);
+    assert q.contents == [1,2,3,4,5,6,7,8,9,10,11];
+
+    var l := q.length();
+    assert l > 10;
+
+    var deq := q.dequeue();
+    assert q.contents == [2,3,4,5,6,7,8,9,10,11];
+    assert deq == 1;
+
+    l := q.length();
+    assert l == 10;
+
+    var cnt := q.contains(5);
+    assert cnt;
+
+    cnt := q.contains(1);
+    assert !cnt;
+
+    var empty := q.isEmpty();
+    assert !empty;
+
+    var peek := q.peek(0);
+    assert peek == 2;
+
+    var q2 := new Queue();
+    q2.enqueue(12);
+    q2.enqueue(13);
+
+    var q3 := q.concat(q2);
+    assert q3.contents == [2,3,4,5,6,7,8,9,10,11,12,13];
+}
+
